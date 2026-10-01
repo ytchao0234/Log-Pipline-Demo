@@ -47,7 +47,7 @@ docker compose up -d --build
 docker compose ps          # 等所有服務都是 running / healthy，約 1～2 分鐘
 ```
 
-## 逐段驗證（建議每一步都自己跑一次，面試時才講得出細節）
+## 逐段驗證
 
 **1. Nginx 有在寫 log**
 ```bash
@@ -79,7 +79,7 @@ curl -s -H 'Content-Type: application/json' "localhost:9200/nginx-access-*/_sear
 
 **6. Grafana**：開 http://localhost:3000 → Dashboards → **Log Pipeline 監控**。
 
-## 三個值得做的實驗（也是面試時最好的故事）
+## 三個實驗
 
 **實驗 A：下游掛掉，資料不會掉**
 ```bash
@@ -110,10 +110,10 @@ docker compose up -d --scale loadgen=5
 2. 程式推到 GitHub，連結放在簡報上
 3. 記下一兩個你實際踩到的坑和解法
 
-## 面試可能被問的問題
+## 設定與安全機制
 
 - **為什麼 Nginx 和 Elasticsearch 中間要放 Kafka？** 解耦上下游、緩衝流量尖峰、下游故障時不遺失資料、可以有多個消費者（例如另一個服務也想即時讀 log）。
-- **你怎麼確保資料不遺失？** Producer 用 `acks=all`；consumer 關閉自動 commit，寫入 ES 成功才 commit（at-least-once）。代價是故障時可能重複寫入，可以用文件 ID 去重來改善。
+- **怎麼確保資料不遺失？** Producer 用 `acks=all`；consumer 關閉自動 commit，寫入 ES 成功才 commit（at-least-once）。代價是故障時可能重複寫入，可以用文件 ID 去重來改善。
 - **shipper 有什麼限制？** 重啟時從檔尾開始讀，停機期間的 log 會漏掉。Filebeat 用 registry 記錄讀取位置來解決，正式環境會直接用 Filebeat 或 Fluent Bit。
 - **為什麼 index 依日期切？** 方便用 ILM 或排程直接刪除舊 index，比 delete-by-query 有效率很多。
 - **Prometheus 是 pull 還是 push？** Pull，Prometheus 定期到各服務的 `/metrics` 抓取。短暫的批次工作才會用 Pushgateway。
