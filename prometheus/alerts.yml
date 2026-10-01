@@ -1,0 +1,46 @@
+groups:
+  - name: log-pipeline
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }} 無法被 Prometheus 抓取"
+
+      - alert: KafkaConsumerLagHigh
+        expr: sum(kafka_consumergroup_lag{consumergroup="log-indexer"}) > 500
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "indexer 處理速度跟不上，Kafka 積壓 {{ $value }} 筆"
+
+      - alert: HighServerErrorRate
+        expr: |
+          sum(rate(pipeline_http_requests_total{status_class="5xx"}[2m]))
+            / sum(rate(pipeline_http_requests_total[2m])) > 0.1
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "5xx 比例超過 10%"
+
+      - alert: ElasticsearchDown
+        expr: elasticsearch_index_stats_up == 0
+        for: 30s
+        labels: { severity: critical }
+        annotations:
+          summary: "es-exporter 無法讀取 Elasticsearch 的 index 統計資料"
+        
+      - alert: NginxDown
+        expr: nginx_up == 0
+        for: 30s
+        labels: { severity: critical }
+        annotations:
+          summary: "nginx-exporter 連不上 Nginx"
+
+      - alert: NoTraffic
+        expr: sum(rate(pipeline_http_requests_total[2m])) == 0
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "過去 2 分鐘沒有任何請求進入管線"
